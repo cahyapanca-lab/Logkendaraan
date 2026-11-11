@@ -1,6 +1,8 @@
 <!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
-<title>Log Kendaraan Kantor</title>
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 100 100%27%3E%3Ctext y=%27.9em%27 font-size=%2790%27%3E%F0%9F%8F%8D%EF%B8%8F%3C/text%3E%3C/svg%3E">
+<title>Log Motor Kantor</title>
+<link rel="icon" type="image/svg+xml" href="logo-icon.svg">
+<link rel="alternate icon" type="image/png" href="logo-192.png">
+<link rel="apple-touch-icon" href="logo-192.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
@@ -49,6 +51,7 @@ body {
   padding-right: max(16px, env(safe-area-inset-right, 0px));
 }
 header.top { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 16px; margin-bottom: 20px; }
+h1 img.logo { vertical-align: middle; margin-right: 10px; border-radius: 8px; }
 h1 { font-size: 1.6rem; line-height: 1.2; font-weight: 600; margin: 0; text-wrap: balance; letter-spacing: -0.01em; }
 header.top p { margin: 0; color: var(--muted); }
 h2 { font-size: 1rem; font-weight: 600; margin: 0; }
@@ -160,8 +163,8 @@ ul.log { list-style: none; margin: 8px 0 0; padding: 0; display: grid; }
 
 <div class="wrap">
   <header class="top">
-    <h1>Log Kendaraan Kantor</h1>
-    <p>Catatan Pemakaian Kendaraan kantor</p>
+    <h1><img class="logo" src="logo-icon.svg" alt="" width="34" height="34">Log Motor Kantor</h1>
+    <p>Catat siapa memakai motor, ke mana, dan berapa kilometer.</p>
     <button type="button" class="small" id="logoutBtn" hidden>Keluar</button>
   </header>
 
