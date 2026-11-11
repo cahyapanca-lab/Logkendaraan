@@ -1,5 +1,6 @@
 <!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
 <title>Log Kendaraan Kantor</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 100 100%27%3E%3Ctext y=%27.9em%27 font-size=%2790%27%3E%F0%9F%8F%8D%EF%B8%8F%3C/text%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
@@ -110,6 +111,14 @@ dialog::backdrop { background: rgba(0, 0, 0, 0.45); }
 dialog form { display: grid; gap: 12px; }
 dialog .info { margin: 0; color: var(--muted); font-size: 0.88rem; overflow-wrap: anywhere; }
 dialog .row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.photo-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.photo-row input { flex: 1 1 160px; min-width: 0; }
+.camwrap { display: grid; gap: 12px; }
+#camVideo { width: 100%; max-height: 60vh; background: #000; border-radius: 6px; }
+.thumb { width: 56px; height: 56px; object-fit: cover; border-radius: 6px; border: 1px solid var(--line); display: block; }
+.thumb[hidden] { display: none; }
+.photos { display: flex; flex-wrap: wrap; gap: 10px; }
+.ph { display: grid; gap: 2px; font-size: 0.75rem; color: var(--muted); text-decoration: none; justify-items: start; }
 .out-empty { color: var(--muted); font-size: 0.9rem; margin: 0; }
 .plate {
   font-family: var(--font-mono); font-weight: 500; font-size: 0.85rem; letter-spacing: 0.04em;
@@ -152,7 +161,7 @@ ul.log { list-style: none; margin: 8px 0 0; padding: 0; display: grid; }
 <div class="wrap">
   <header class="top">
     <h1>Log Kendaraan Kantor</h1>
-    <p>Catatan Pemakaian Kendaraan Kantor</p>
+    <p>Catatan Pemakaian Kendaraan kantor</p>
     <button type="button" class="small" id="logoutBtn" hidden>Keluar</button>
   </header>
 
@@ -188,11 +197,13 @@ ul.log { list-style: none; margin: 8px 0 0; padding: 0; display: grid; }
             <div class="f wide"><label for="f-dest">Tujuan</label><input id="f-dest" type="text" placeholder="Contoh: Kantor pos Depok Lama" required></div>
             <div class="f wide"><label for="f-purpose">Keperluan</label><input id="f-purpose" type="text" placeholder="Contoh: Kirim berkas, survei vendor" required></div>
             <div class="f wide"><label for="f-kmstart">KM awal (speedometer)</label><input id="f-kmstart" class="mono" type="number" inputmode="numeric" min="0" step="1" required></div>
+            <div class="f wide"><label for="f-photo-start">Foto speedometer (KM awal)</label><div class="photo-row"><button type="button" class="small camBtn" data-target="f-photo-start">📷 Buka kamera</button><span class="muted">atau</span><input id="f-photo-start" type="file" accept="image/*"></div><img class="thumb" id="p-start" alt="" hidden></div>
           </fieldset>
           <fieldset id="returnSet" hidden>
             <legend class="label">Saat kembali (isi setelah pulang)</legend>
             <div class="f"><label for="f-in">Jam kembali</label><input id="f-in" type="time"></div>
             <div class="f"><label for="f-kmend">KM akhir</label><input id="f-kmend" class="mono" type="number" inputmode="numeric" min="0" step="1"></div>
+            <div class="f wide"><label for="f-photo-end">Foto speedometer (KM akhir)</label><div class="photo-row"><button type="button" class="small camBtn" data-target="f-photo-end">📷 Buka kamera</button><span class="muted">atau</span><input id="f-photo-end" type="file" accept="image/*"></div><img class="thumb" id="p-end" alt="" hidden></div>
             <div class="f wide"><label for="f-fuel">BBM yang dibeli (Rp)</label><input id="f-fuel" class="mono" type="number" inputmode="numeric" min="0" step="500" placeholder="0 jika tidak isi"></div>
             <div class="f wide"><label for="f-note">Catatan kondisi motor</label><textarea id="f-note" placeholder="Contoh: rem belakang agak bunyi, bensin tinggal setengah"></textarea></div>
           </fieldset>
@@ -236,9 +247,18 @@ ul.log { list-style: none; margin: 8px 0 0; padding: 0; display: grid; }
     </div>
     <div class="f"><label for="d-fuel">BBM yang dibeli (Rp), opsional</label><input id="d-fuel" class="mono" type="number" inputmode="numeric" min="0" step="500" placeholder="0 jika tidak isi"></div>
     <div class="f"><label for="d-note">Catatan kondisi motor, opsional</label><textarea id="d-note"></textarea></div>
+    <div class="f"><label for="d-photo">Foto speedometer (KM akhir) *</label><div class="photo-row"><button type="button" class="small camBtn" data-target="d-photo">📷 Buka kamera</button><span class="muted">atau</span><input id="d-photo" type="file" accept="image/*"></div><img class="thumb" id="p-done" alt="" hidden></div>
     <div class="msg" id="doneMsg" role="alert"></div>
     <div class="actions"><button type="submit" class="primary" id="doneSave">Selesai pemakaian</button><button type="button" id="doneCancel">Batal</button></div>
   </form>
+</dialog>
+<dialog id="camDlg" aria-labelledby="camTitle">
+  <div class="camwrap">
+    <h2 id="camTitle">Foto speedometer</h2>
+    <video id="camVideo" autoplay playsinline muted></video>
+    <div class="msg" id="camMsg" role="alert"></div>
+    <div class="actions"><button type="button" class="primary" id="camShot" disabled>Ambil foto</button><button type="button" id="camCancel">Batal</button></div>
+  </div>
 </dialog>
 <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
 
@@ -248,6 +268,8 @@ ul.log { list-style: none; margin: 8px 0 0; padding: 0; display: grid; }
 <script>
 (function () {
   var $ = function (id) { return document.getElementById(id); };
+  var FOTO_WAJIB = true;          /* ubah ke false bila foto speedometer boleh dikosongkan */
+  var PHOTO_BUCKET = 'odometer';
   var pad = function (n) { return String(n).padStart(2, '0'); };
   var nf = new Intl.NumberFormat('id-ID');
   function el(tag, cls, text) {
@@ -277,12 +299,12 @@ ul.log { list-style: none; margin: 8px 0 0; padding: 0; display: grid; }
   function fromRow(r) {
     return { id: r.id, date: r.trip_date, out: (r.time_out || '').slice(0, 5), rider: r.rider, plate: r.plate,
       dest: r.dest, purpose: r.purpose, kmStart: r.km_start, in: (r.time_in || '').slice(0, 5), kmEnd: r.km_end,
-      fuel: r.fuel, note: r.note || '', status: r.status, createdBy: r.created_by };
+      fuel: r.fuel, note: r.note || '', status: r.status, createdBy: r.created_by, photoStart: r.km_start_photo, photoEnd: r.km_end_photo };
   }
   function toRow(t) {
     return { trip_date: t.date, time_out: t.out, rider: t.rider, plate: t.plate, dest: t.dest, purpose: t.purpose,
       km_start: t.kmStart, time_in: t.in || null, km_end: t.kmEnd, fuel: t.fuel, note: t.note || null,
-      status: t.status, created_by: t.createdBy || undefined, updated_at: new Date().toISOString() };
+      status: t.status, km_start_photo: t.photoStart || null, km_end_photo: t.photoEnd || null, created_by: t.createdBy || undefined, updated_at: new Date().toISOString() };
   }
   async function refresh() {
     var r = await sb.from('trips').select('*').order('trip_date', { ascending: false }).limit(5000);
@@ -328,6 +350,84 @@ ul.log { list-style: none; margin: 8px 0 0; padding: 0; display: grid; }
   /* ---------- data helpers ---------- */
   function distance(t) { return (t.kmEnd != null && t.kmStart != null) ? Math.max(0, t.kmEnd - t.kmStart) : null; }
   function sortKey(t) { return (t.date || '') + ' ' + (t.out || ''); }
+  function compressImage(file) {
+    return new Promise(function (resolve) {
+      var img = new Image(), url = URL.createObjectURL(file);
+      img.onload = function () {
+        var sc = Math.min(1, 1280 / Math.max(img.width, img.height));
+        var c = document.createElement('canvas');
+        c.width = Math.round(img.width * sc); c.height = Math.round(img.height * sc);
+        c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+        URL.revokeObjectURL(url);
+        c.toBlob(function (b) { resolve(b || file); }, 'image/jpeg', 0.8);
+      };
+      img.onerror = function () { URL.revokeObjectURL(url); resolve(file); };
+      img.src = url;
+    });
+  }
+  async function uploadPhoto(file, kind) {
+    var blob = await compressImage(file), d = new Date();
+    var id = (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : String(Date.now()) + Math.random().toString(16).slice(2);
+    var path = d.getFullYear() + '/' + pad(d.getMonth() + 1) + '/' + kind + '-' + id + '.jpg';
+    var r = await sb.storage.from(PHOTO_BUCKET).upload(path, blob, { contentType: blob.type || 'image/jpeg', upsert: false });
+    if (r.error) throw r.error;
+    return path;
+  }
+  function photoUrl(path) { return path ? sb.storage.from(PHOTO_BUCKET).getPublicUrl(path).data.publicUrl : ''; }
+  var camStream = null, camTarget = null;
+  function stopCam() {
+    if (camStream) { camStream.getTracks().forEach(function (t) { t.stop(); }); camStream = null; }
+    $('camVideo').srcObject = null;
+  }
+  function closeCam() { stopCam(); if ($('camDlg').open) $('camDlg').close(); }
+  async function openCam(inputId) {
+    camTarget = inputId;
+    $('camMsg').textContent = ''; $('camShot').disabled = true;
+    $('camDlg').showModal();
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      $('camMsg').textContent = 'Browser ini tidak bisa membuka kamera langsung. Tutup, lalu pilih file foto.'; return;
+    }
+    try {
+      var st = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' }, width: { ideal: 1920 } }, audio: false });
+      if (!$('camDlg').open) { st.getTracks().forEach(function (t) { t.stop(); }); return; }
+      camStream = st;
+      $('camVideo').srcObject = st; $('camShot').disabled = false;
+    } catch (e) {
+      $('camMsg').textContent = (e && e.name === 'NotAllowedError')
+        ? 'Izin kamera ditolak. Izinkan kamera untuk situs ini di pengaturan browser, atau tutup lalu pilih file foto.'
+        : 'Kamera tidak bisa dibuka. Tutup, lalu pilih file foto.';
+    }
+  }
+  function shoot() {
+    var v = $('camVideo');
+    if (!v.videoWidth) return;
+    var sc = Math.min(1, 1280 / Math.max(v.videoWidth, v.videoHeight));
+    var c = document.createElement('canvas');
+    c.width = Math.round(v.videoWidth * sc); c.height = Math.round(v.videoHeight * sc);
+    c.getContext('2d').drawImage(v, 0, 0, c.width, c.height);
+    c.toBlob(function (b) {
+      if (!b) return;
+      var inp = $(camTarget);
+      try {
+        var dt = new DataTransfer();
+        dt.items.add(new File([b], 'kamera-' + Date.now() + '.jpg', { type: 'image/jpeg' }));
+        inp.files = dt.files;
+      } catch (e) { $('camMsg').textContent = 'Foto gagal dipasang. Tutup, lalu pilih file foto.'; return; }
+      inp.dispatchEvent(new Event('change'));
+      closeCam();
+    }, 'image/jpeg', 0.85);
+  }
+  function lk(path) { return path ? { t: 's', v: 'Lihat foto', l: { Target: photoUrl(path) } } : ''; }
+  function wirePreview(inId, imgId) {
+    var inp = $(inId), img = $(imgId);
+    inp.addEventListener('change', function () {
+      if (img.dataset.u) URL.revokeObjectURL(img.dataset.u);
+      var f = inp.files[0];
+      if (f) { var u = URL.createObjectURL(f); img.dataset.u = u; img.src = u; img.hidden = false; }
+      else { img.hidden = true; img.removeAttribute('src'); }
+    });
+  }
+  function clearPreviews() { ['p-start', 'p-end', 'p-done'].forEach(function (id) { var i = $(id); i.hidden = true; i.removeAttribute('src'); }); }
   var vehicles = [], vLoaded = false, vErr = false, wantPlate = '';
   function vname(plate) { var v = vehicles.find(function (x) { return x.plate === plate; }); return v ? v.name : ''; }
   function setPlate(p) {
@@ -366,6 +466,7 @@ ul.log { list-style: none; margin: 8px 0 0; padding: 0; display: grid; }
   function resetForm() {
     editingId = null;
     $('tripForm').reset();
+    clearPreviews();
     $('f-date').value = todayStr();
     $('f-out').value = nowTime();
     $('f-rider').value = lsGet('logmotor.rider') || '';
@@ -397,6 +498,7 @@ ul.log { list-style: none; margin: 8px 0 0; padding: 0; display: grid; }
     $('f-note').value = t.note || '';
     $('formMsg').textContent = '';
     $('kmHint').textContent = '';
+    $('f-photo-start').value = ''; $('f-photo-end').value = ''; clearPreviews();
     setMode(mode);
     $('formPanel').scrollIntoView({ behavior: 'smooth', block: 'start' });
     setTimeout(function () { $(mode === 'complete' ? 'f-kmend' : 'f-rider').focus({ preventScroll: true }); }, 250);
@@ -427,10 +529,19 @@ ul.log { list-style: none; margin: 8px 0 0; padding: 0; display: grid; }
     if (rec.kmStart < 0 || (rec.kmEnd != null && rec.kmEnd < 0)) { msg.textContent = 'KM tidak boleh negatif.'; return; }
     if ((rec.kmEnd != null) !== !!rec.in) { msg.textContent = 'Jam kembali dan KM akhir diisi bersamaan, atau dikosongkan keduanya.'; return; }
     if (rec.kmEnd != null && rec.kmEnd < rec.kmStart) { msg.textContent = 'KM akhir lebih kecil dari KM awal. Periksa lagi angka speedometer.'; return; }
+    var oldRec = editingId ? (trips.find(function (t) { return t.id === editingId; }) || {}) : {};
+    var fS = $('f-photo-start').files[0], fE = $('f-photo-end').files[0];
+    if (FOTO_WAJIB && !editingId && !fS) { msg.textContent = 'Foto speedometer (KM awal) wajib diunggah.'; return; }
+    if (FOTO_WAJIB && rec.kmEnd != null && oldRec.status !== 'done' && !fE && !oldRec.photoEnd) { msg.textContent = 'Foto speedometer (KM akhir) wajib diunggah.'; return; }
+    rec.photoStart = oldRec.photoStart || null; rec.photoEnd = oldRec.photoEnd || null;
     rec.status = rec.kmEnd != null ? 'done' : 'open';
     var now = Date.now();
     busy = true; $('saveBtn').disabled = true;
     try {
+      if (fS || fE) msg.textContent = 'Mengunggah foto…';
+      if (fS) rec.photoStart = await uploadPhoto(fS, 'awal');
+      if (fE) rec.photoEnd = await uploadPhoto(fE, 'akhir');
+      msg.textContent = '';
       if (editingId) {
         var old = trips.find(function (t) { return t.id === editingId; }) || {};
         rec.createdBy = old.createdBy || uid || null;
@@ -505,6 +616,16 @@ ul.log { list-style: none; margin: 8px 0 0; padding: 0; display: grid; }
     if (t.fuel) meta.appendChild(el('span', null, 'BBM Rp ' + nf.format(t.fuel)));
     li.appendChild(meta);
     if (t.note) li.appendChild(el('div', 'e-note', 'Catatan: ' + t.note));
+    if (t.photoStart || t.photoEnd) {
+      var ph = el('div', 'photos');
+      [['KM awal', t.photoStart], ['KM akhir', t.photoEnd]].forEach(function (x) {
+        if (!x[1]) return;
+        var a = el('a', 'ph'); a.href = photoUrl(x[1]); a.target = '_blank'; a.rel = 'noopener';
+        var im = el('img', 'thumb'); im.src = a.href; im.loading = 'lazy'; im.alt = 'Foto ' + x[0];
+        a.appendChild(im); a.appendChild(el('span', null, x[0])); ph.appendChild(a);
+      });
+      li.appendChild(ph);
+    }
 
     if (canWrite) {
       var act = el('div', 'e-actions');
@@ -540,6 +661,7 @@ ul.log { list-style: none; margin: 8px 0 0; padding: 0; display: grid; }
     $('d-fuel').value = t.fuel != null ? t.fuel : '';
     $('d-note').value = t.note || '';
     $('doneMsg').textContent = '';
+    $('d-photo').value = ''; $('p-done').hidden = true; $('p-done').removeAttribute('src');
     $('doneDlg').showModal();
     setTimeout(function () { $('d-kmend').focus(); }, 50);
   }
@@ -549,10 +671,13 @@ ul.log { list-style: none; margin: 8px 0 0; padding: 0; display: grid; }
     var t = doneTrip, msg = $('doneMsg'), km = num($('d-kmend').value), jam = $('d-in').value;
     if (km == null) { msg.textContent = 'KM akhir wajib diisi untuk menyelesaikan pemakaian.'; return; }
     if (!jam) { msg.textContent = 'Isi jam kembali.'; return; }
+    var photo = $('d-photo').files[0];
+    if (FOTO_WAJIB && !photo) { msg.textContent = 'Foto speedometer (KM akhir) wajib diunggah.'; return; }
     if (km < t.kmStart) { msg.textContent = 'KM akhir lebih kecil dari KM awal (' + nf.format(t.kmStart) + '). Periksa speedometer.'; return; }
     var rec = Object.assign({}, t, { kmEnd: km, in: jam, fuel: num($('d-fuel').value), note: $('d-note').value.trim(), status: 'done' });
     doneBusy = true; $('doneSave').disabled = true;
     try {
+      if (photo) { msg.textContent = 'Mengunggah foto…'; rec.photoEnd = await uploadPhoto(photo, 'akhir'); msg.textContent = ''; }
       await db.doc('trips/' + t.id).set(rec);
       $('doneDlg').close();
       toast('Pemakaian selesai. ' + nf.format(km - t.kmStart) + ' km ditempuh.');
@@ -646,12 +771,12 @@ ul.log { list-style: none; margin: 8px 0 0; padding: 0; display: grid; }
   function exportXlsx() {
     var list = window.__logList || [];
     if (!list.length) return;
-    var head = ['Tanggal', 'Pemakai', 'Plat', 'Jenis kendaraan', 'Keperluan', 'Tujuan', 'Jam keluar', 'Jam kembali', 'KM awal', 'KM akhir', 'Jarak (km)', 'BBM (Rp)', 'Catatan', 'Status'];
+    var head = ['Tanggal', 'Pemakai', 'Plat', 'Jenis kendaraan', 'Keperluan', 'Tujuan', 'Jam keluar', 'Jam kembali', 'KM awal', 'KM akhir', 'Jarak (km)', 'BBM (Rp)', 'Catatan', 'Status', 'Foto KM awal', 'Foto KM akhir'];
     var rows = list.slice().sort(function (a, b) { return sortKey(a) > sortKey(b) ? 1 : -1; }).map(function (t) {
-      return [t.date, t.rider, t.plate, vname(t.plate), t.purpose, t.dest, t.out, t.in || '', t.kmStart, t.kmEnd, distance(t), t.fuel, t.note, t.status === 'done' ? 'Selesai' : 'Belum selesai'];
+      return [t.date, t.rider, t.plate, vname(t.plate), t.purpose, t.dest, t.out, t.in || '', t.kmStart, t.kmEnd, distance(t), t.fuel, t.note, t.status === 'done' ? 'Selesai' : 'Belum selesai', lk(t.photoStart), lk(t.photoEnd)];
     });
     var ws = XLSX.utils.aoa_to_sheet([head].concat(rows));
-    ws['!cols'] = [12, 18, 12, 24, 24, 24, 11, 12, 10, 10, 11, 11, 30, 15].map(function (w) { return { wch: w }; });
+    ws['!cols'] = [12, 18, 12, 24, 24, 24, 11, 12, 10, 10, 11, 11, 30, 15, 14, 14].map(function (w) { return { wch: w }; });
     var wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Log Motor');
     var name = 'log-motor-' + (fMonth === 'all' ? 'semua' : fMonth) + (fPlate ? '-' + fPlate.replace(/\s+/g, '') : '') + '.xlsx';
@@ -663,6 +788,11 @@ ul.log { list-style: none; margin: 8px 0 0; padding: 0; display: grid; }
   $('tripForm').addEventListener('submit', submit);
   $('cancelBtn').addEventListener('click', resetForm);
   $('f-plate').addEventListener('change', function () { wantPlate = $('f-plate').value; $('f-vtype').value = vname(wantPlate); $('kmHint').textContent = ''; suggestKm(); });
+  Array.prototype.forEach.call(document.querySelectorAll('.camBtn'), function (b) { b.addEventListener('click', function () { openCam(b.dataset.target); }); });
+  $('camShot').addEventListener('click', shoot);
+  $('camCancel').addEventListener('click', closeCam);
+  $('camDlg').addEventListener('close', stopCam);
+  wirePreview('f-photo-start', 'p-start'); wirePreview('f-photo-end', 'p-end'); wirePreview('d-photo', 'p-done');
   $('doneForm').addEventListener('submit', submitDone);
   $('doneCancel').addEventListener('click', function () { $('doneDlg').close(); });
   $('f-month').addEventListener('change', function (e) { fMonth = e.target.value; render(); });
