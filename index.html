@@ -579,22 +579,7 @@ ul.log { list-style: none; margin: 8px 0 0; padding: 0; display: grid; }
     function fail(m) { loaded = true; note.hidden = false; note.textContent = m; $('saveBtn').disabled = true; render(); }
     if (!window.supabase || !cfg.SUPABASE_URL || cfg.SUPABASE_URL.indexOf('GANTI') >= 0) { fail('Isi SUPABASE_URL dan SUPABASE_ANON_KEY di config.js.'); return; }
     sb = window.supabase.createClient(cfg.SUPABASE_URL, cfg.SUPABASE_ANON_KEY);
-    var sess = (await sb.auth.getSession()).data.session;
-    if (!sess) {
-      $('tripForm').hidden = true; $('loginPanel').hidden = false;
-      $('loginForm').addEventListener('submit', async function (e) {
-        e.preventDefault();
-        var r = await sb.auth.signInWithPassword({ email: $('l-email').value.trim(), password: $('l-pass').value });
-        if (r.error) { $('loginMsg').textContent = 'Email atau kata sandi salah.'; return; }
-        location.reload();
-      });
-      fail('Silakan masuk untuk melihat dan mencatat data.');
-      $('formPanel').hidden = true; $('loginPanel').hidden = false;
-      return;
-    }
-    uid = sess.user.id;
-    $('logoutBtn').hidden = false;
-    $('logoutBtn').addEventListener('click', async function () { await sb.auth.signOut(); location.reload(); });
+    // Mode tanpa login: semua pengunjung memakai anon key.
     db = makeDb();
     db.collection('trips').limit(1000).onSnapshot(function (snap) {
       trips = snap.docs.map(function (d) { var x = d.data() || {}; x.id = d.id; return x; });
