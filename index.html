@@ -1,5 +1,5 @@
 <!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
-<title>Log Kendaraan</title>
+<title>Log Kendaraan Kantor</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
@@ -151,8 +151,8 @@ ul.log { list-style: none; margin: 8px 0 0; padding: 0; display: grid; }
 
 <div class="wrap">
   <header class="top">
-    <h1>Log Kendaraan</h1>
-    <p>Catatan pemakaian kendaraan kantor</p>
+    <h1>Log Kendaraan Kantor</h1>
+    <p>Catatan Pemakaian Kendaraan Kantor</p>
     <button type="button" class="small" id="logoutBtn" hidden>Keluar</button>
   </header>
 
@@ -177,9 +177,12 @@ ul.log { list-style: none; margin: 8px 0 0; padding: 0; display: grid; }
             <div class="f"><label for="f-out">Jam keluar</label><input id="f-out" type="time" required></div>
             <div class="f wide"><label for="f-rider">Nama pemakai</label><input id="f-rider" type="text" autocomplete="name" placeholder="Nama lengkap" required></div>
             <div class="f wide">
-              <label for="f-plate">Motor (plat nomor)</label>
-              <input id="f-plate" class="mono" type="text" list="plateList" autocapitalize="characters" placeholder="B 1234 XYZ" required>
-              <datalist id="plateList"></datalist>
+              <label for="f-plate">Kendaraan (plat nomor)</label>
+              <select id="f-plate" class="mono" required><option value="">Pilih kendaraan…</option></select>
+            </div>
+            <div class="f wide">
+              <label for="f-vtype">Jenis kendaraan</label>
+              <input id="f-vtype" type="text" readonly tabindex="-1" placeholder="Terisi otomatis sesuai plat">
               <span class="hint" id="kmHint"></span>
             </div>
             <div class="f wide"><label for="f-dest">Tujuan</label><input id="f-dest" type="text" placeholder="Contoh: Kantor pos Depok Lama" required></div>
@@ -215,7 +218,7 @@ ul.log { list-style: none; margin: 8px 0 0; padding: 0; display: grid; }
         </div>
         <div class="filters">
           <div class="f"><label for="f-month">Bulan</label><select id="f-month"></select></div>
-          <div class="f"><label for="f-filterplate">Motor</label><select id="f-filterplate"></select></div>
+          <div class="f"><label for="f-filterplate">Kendaraan</label><select id="f-filterplate"></select></div>
         </div>
         <dl class="stats" id="stats"></dl>
         <ul class="log" id="log"></ul>
@@ -325,6 +328,25 @@ ul.log { list-style: none; margin: 8px 0 0; padding: 0; display: grid; }
   /* ---------- data helpers ---------- */
   function distance(t) { return (t.kmEnd != null && t.kmStart != null) ? Math.max(0, t.kmEnd - t.kmStart) : null; }
   function sortKey(t) { return (t.date || '') + ' ' + (t.out || ''); }
+  var vehicles = [], vLoaded = false, vErr = false, wantPlate = '';
+  function vname(plate) { var v = vehicles.find(function (x) { return x.plate === plate; }); return v ? v.name : ''; }
+  function setPlate(p) {
+    var sel = $('f-plate');
+    wantPlate = p || '';
+    if (wantPlate && vLoaded && !vname(wantPlate) && !Array.from(sel.options).some(function (o) { return o.value === wantPlate; })) {
+      var o = el('option', null, wantPlate + ' (belum terdaftar)'); o.value = wantPlate; sel.appendChild(o);
+    }
+    sel.value = wantPlate;
+    $('f-vtype').value = vname(sel.value);
+  }
+  function fillPlateSelect() {
+    var sel = $('f-plate');
+    if (!editingId && !wantPlate) { var lp = lsGet('logmotor.plate'); if (vname(lp)) wantPlate = lp; }
+    sel.textContent = '';
+    var o0 = el('option', null, 'Pilih kendaraan…'); o0.value = ''; sel.appendChild(o0);
+    vehicles.forEach(function (v) { var o = el('option', null, v.plate + ' — ' + v.name); o.value = v.plate; sel.appendChild(o); });
+    setPlate(wantPlate);
+  }
   function lastKm(plate) {
     var best = null;
     trips.forEach(function (t) {
@@ -347,7 +369,7 @@ ul.log { list-style: none; margin: 8px 0 0; padding: 0; display: grid; }
     $('f-date').value = todayStr();
     $('f-out').value = nowTime();
     $('f-rider').value = lsGet('logmotor.rider') || '';
-    $('f-plate').value = lsGet('logmotor.plate') || '';
+    setPlate(vname(lsGet('logmotor.plate')) ? lsGet('logmotor.plate') : '');
     $('formMsg').textContent = '';
     setMode('new');
     suggestKm();
@@ -365,7 +387,7 @@ ul.log { list-style: none; margin: 8px 0 0; padding: 0; display: grid; }
     $('f-date').value = t.date || todayStr();
     $('f-out').value = t.out || '';
     $('f-rider').value = t.rider || '';
-    $('f-plate').value = t.plate || '';
+    setPlate(t.plate || '');
     $('f-dest').value = t.dest || '';
     $('f-purpose').value = t.purpose || '';
     $('f-kmstart').value = t.kmStart != null ? t.kmStart : '';
@@ -450,7 +472,7 @@ ul.log { list-style: none; margin: 8px 0 0; padding: 0; display: grid; }
 
   /* ---------- rendering ---------- */
   function syncSelect(sel, items, current, sigKey) {
-    var sig = items.map(function (i) { return i[0]; }).join('|');
+    var sig = items.map(function (i) { return i[0] + ':' + i[1]; }).join('|');
     if (optSig[sigKey] !== sig) {
       optSig[sigKey] = sig;
       sel.textContent = '';
@@ -463,7 +485,8 @@ ul.log { list-style: none; margin: 8px 0 0; padding: 0; display: grid; }
     var li = el('li', 'entry');
     var top = el('div', 'e-top');
     top.appendChild(el('span', 'plate', t.plate || '-'));
-    top.appendChild(el('span', 'pill ' + (t.status === 'done' ? 'done' : 'open'), t.status === 'done' ? 'Selesai' : 'Sedang dipakai'));
+    if (vname(t.plate)) top.appendChild(el('span', 'muted', vname(t.plate)));
+    top.appendChild(el('span', 'pill ' + (t.status === 'done' ? 'done' : 'open'), t.status === 'done' ? 'Selesai' : 'Belum selesai'));
     var when = fmtDate(t.date) + ' · ' + (t.out || '--:--') + (t.in ? '–' + t.in : '');
     top.appendChild(el('span', 'e-when', when));
     li.appendChild(top);
@@ -511,7 +534,7 @@ ul.log { list-style: none; margin: 8px 0 0; padding: 0; display: grid; }
   var doneTrip = null, doneBusy = false;
   function openDone(t) {
     doneTrip = t;
-    $('doneInfo').textContent = t.plate + ' · ' + t.rider + ' ke ' + t.dest + ' · KM awal ' + nf.format(t.kmStart != null ? t.kmStart : 0);
+    $('doneInfo').textContent = t.plate + (vname(t.plate) ? ' (' + vname(t.plate) + ')' : '') + ' · ' + t.rider + ' ke ' + t.dest + ' · KM awal ' + nf.format(t.kmStart != null ? t.kmStart : 0);
     $('d-kmend').value = '';
     $('d-in').value = nowTime();
     $('d-fuel').value = t.fuel != null ? t.fuel : '';
@@ -542,19 +565,14 @@ ul.log { list-style: none; margin: 8px 0 0; padding: 0; display: grid; }
 
   function render() {
     /* options */
-    var plates = Array.from(new Set(trips.map(function (t) { return t.plate; }).filter(Boolean))).sort();
-    var dl = $('plateList');
-    if (optSig.plates !== plates.join('|')) {
-      optSig.plates = plates.join('|'); dl.textContent = '';
-      plates.forEach(function (p) { var o = document.createElement('option'); o.value = p; dl.appendChild(o); });
-    }
+    var plates = Array.from(new Set(trips.map(function (t) { return t.plate; }).concat(vehicles.map(function (v) { return v.plate; })).filter(Boolean))).sort();
     var months = new Set([todayStr().slice(0, 7)]);
     trips.forEach(function (t) { if (/^\d{4}-\d{2}/.test(t.date || '')) months.add(t.date.slice(0, 7)); });
     var mItems = Array.from(months).sort().reverse().map(function (m) { return [m, fmtMonth(m)]; });
     mItems.push(['all', 'Semua bulan']);
     if (fMonth !== 'all' && !months.has(fMonth)) fMonth = todayStr().slice(0, 7);
     syncSelect($('f-month'), mItems, fMonth, 'months');
-    var pItems = [['', 'Semua motor']].concat(plates.map(function (p) { return [p, p]; }));
+    var pItems = [['', 'Semua kendaraan']].concat(plates.map(function (p) { return [p, vname(p) ? p + ' — ' + vname(p) : p]; }));
     if (fPlate && plates.indexOf(fPlate) < 0) fPlate = '';
     syncSelect($('f-filterplate'), pItems, fPlate, 'fplates');
 
@@ -574,6 +592,7 @@ ul.log { list-style: none; margin: 8px 0 0; padding: 0; display: grid; }
         var isDone = t.status === 'done';
         var row = el('div', 'out-item' + (isDone ? ' done' : ''));
         row.appendChild(el('span', 'plate', t.plate || '-'));
+        if (vname(t.plate)) row.appendChild(el('span', 'muted', vname(t.plate)));
         var pill = el('span', 'pill ' + (isDone ? 'done' : 'open'));
         if (!isDone) pill.appendChild(el('span', 'dot'));
         pill.appendChild(document.createTextNode(isDone ? 'Selesai' : 'Belum selesai'));
@@ -627,12 +646,12 @@ ul.log { list-style: none; margin: 8px 0 0; padding: 0; display: grid; }
   function exportXlsx() {
     var list = window.__logList || [];
     if (!list.length) return;
-    var head = ['Tanggal', 'Pemakai', 'Motor', 'Keperluan', 'Tujuan', 'Jam keluar', 'Jam kembali', 'KM awal', 'KM akhir', 'Jarak (km)', 'BBM (Rp)', 'Catatan', 'Status'];
+    var head = ['Tanggal', 'Pemakai', 'Plat', 'Jenis kendaraan', 'Keperluan', 'Tujuan', 'Jam keluar', 'Jam kembali', 'KM awal', 'KM akhir', 'Jarak (km)', 'BBM (Rp)', 'Catatan', 'Status'];
     var rows = list.slice().sort(function (a, b) { return sortKey(a) > sortKey(b) ? 1 : -1; }).map(function (t) {
-      return [t.date, t.rider, t.plate, t.purpose, t.dest, t.out, t.in || '', t.kmStart, t.kmEnd, distance(t), t.fuel, t.note, t.status === 'done' ? 'Selesai' : 'Sedang dipakai'];
+      return [t.date, t.rider, t.plate, vname(t.plate), t.purpose, t.dest, t.out, t.in || '', t.kmStart, t.kmEnd, distance(t), t.fuel, t.note, t.status === 'done' ? 'Selesai' : 'Belum selesai'];
     });
     var ws = XLSX.utils.aoa_to_sheet([head].concat(rows));
-    ws['!cols'] = [12, 18, 12, 24, 24, 11, 12, 10, 10, 11, 11, 30, 15].map(function (w) { return { wch: w }; });
+    ws['!cols'] = [12, 18, 12, 24, 24, 24, 11, 12, 10, 10, 11, 11, 30, 15].map(function (w) { return { wch: w }; });
     var wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Log Motor');
     var name = 'log-motor-' + (fMonth === 'all' ? 'semua' : fMonth) + (fPlate ? '-' + fPlate.replace(/\s+/g, '') : '') + '.xlsx';
@@ -643,8 +662,7 @@ ul.log { list-style: none; margin: 8px 0 0; padding: 0; display: grid; }
   /* ---------- init ---------- */
   $('tripForm').addEventListener('submit', submit);
   $('cancelBtn').addEventListener('click', resetForm);
-  $('f-plate').addEventListener('change', suggestKm);
-  $('f-plate').addEventListener('blur', function () { $('f-plate').value = normPlate($('f-plate').value); });
+  $('f-plate').addEventListener('change', function () { wantPlate = $('f-plate').value; $('f-vtype').value = vname(wantPlate); $('kmHint').textContent = ''; suggestKm(); });
   $('doneForm').addEventListener('submit', submitDone);
   $('doneCancel').addEventListener('click', function () { $('doneDlg').close(); });
   $('f-month').addEventListener('change', function (e) { fMonth = e.target.value; render(); });
@@ -661,9 +679,12 @@ ul.log { list-style: none; margin: 8px 0 0; padding: 0; display: grid; }
     sb = window.supabase.createClient(cfg.SUPABASE_URL, cfg.SUPABASE_ANON_KEY);
     // Mode tanpa login: semua pengunjung memakai anon key.
     db = makeDb();
+    var vr = await sb.from('vehicles').select('plate,name').eq('active', true).order('name');
+    if (vr.error) { vErr = true; note.hidden = false; note.textContent = 'Daftar kendaraan belum bisa dibaca. Jalankan supabase-kendaraan.sql di Supabase.'; }
+    else { vehicles = vr.data; vLoaded = true; fillPlateSelect(); }
     db.collection('trips').limit(1000).onSnapshot(function (snap) {
       trips = snap.docs.map(function (d) { var x = d.data() || {}; x.id = d.id; return x; });
-      loaded = true; note.hidden = true;
+      loaded = true; if (!vErr) note.hidden = true;
       render();
       if (!editingId) suggestKm();
     }, function () { fail('Data tidak bisa dibaca. Periksa koneksi atau hak akses.'); });
