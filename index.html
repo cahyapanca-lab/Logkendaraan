@@ -98,6 +98,18 @@ button[disabled] { opacity: 0.55; cursor: not-allowed; }
 }
 .out-item .who { flex: 1 1 160px; min-width: 0; overflow-wrap: anywhere; }
 .out-item .who b { font-weight: 600; }
+.out-item.done { background: var(--ok-soft); }
+.out-item .btns { margin-left: auto; }
+.dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--warn); margin-right: 5px; animation: pulse 1.6s ease-in-out infinite; }
+@keyframes pulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.35; transform: scale(0.75); } }
+@media (prefers-reduced-motion: reduce) { .dot { animation: none; } }
+.live-tag { font-size: 0.72rem; color: var(--muted); font-weight: 500; }
+fieldset[hidden] { display: none; }
+dialog { border: 1px solid var(--line); border-radius: 8px; background: var(--surface); color: var(--ink); padding: 20px; width: min(420px, calc(100% - 32px)); }
+dialog::backdrop { background: rgba(0, 0, 0, 0.45); }
+dialog form { display: grid; gap: 12px; }
+dialog .info { margin: 0; color: var(--muted); font-size: 0.88rem; overflow-wrap: anywhere; }
+dialog .row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
 .out-empty { color: var(--muted); font-size: 0.9rem; margin: 0; }
 .plate {
   font-family: var(--font-mono); font-weight: 500; font-size: 0.85rem; letter-spacing: 0.04em;
@@ -174,7 +186,7 @@ ul.log { list-style: none; margin: 8px 0 0; padding: 0; display: grid; }
             <div class="f wide"><label for="f-purpose">Keperluan</label><input id="f-purpose" type="text" placeholder="Contoh: Kirim berkas, survei vendor" required></div>
             <div class="f wide"><label for="f-kmstart">KM awal (speedometer)</label><input id="f-kmstart" class="mono" type="number" inputmode="numeric" min="0" step="1" required></div>
           </fieldset>
-          <fieldset>
+          <fieldset id="returnSet" hidden>
             <legend class="label">Saat kembali (isi setelah pulang)</legend>
             <div class="f"><label for="f-in">Jam kembali</label><input id="f-in" type="time"></div>
             <div class="f"><label for="f-kmend">KM akhir</label><input id="f-kmend" class="mono" type="number" inputmode="numeric" min="0" step="1"></div>
@@ -192,7 +204,7 @@ ul.log { list-style: none; margin: 8px 0 0; padding: 0; display: grid; }
 
     <div class="col">
       <section class="panel" aria-labelledby="outTitle">
-        <div class="panel-head"><h2 id="outTitle">Kendaraan yang sedang Terpakai</h2></div>
+        <div class="panel-head"><h2 id="outTitle">Status kendaraan</h2><span class="live-tag">● live</span></div>
         <div class="strip" id="outList"><p class="out-empty">Memuat data…</p></div>
       </section>
 
@@ -211,6 +223,20 @@ ul.log { list-style: none; margin: 8px 0 0; padding: 0; display: grid; }
     </div>
   </div>
 </div>
+<dialog id="doneDlg" aria-labelledby="doneTitle">
+  <form id="doneForm" novalidate>
+    <h2 id="doneTitle">Selesai pemakaian</h2>
+    <p class="info" id="doneInfo"></p>
+    <div class="row">
+      <div class="f"><label for="d-kmend">KM akhir (speedometer) *</label><input id="d-kmend" class="mono" type="number" inputmode="numeric" min="0" step="1" required></div>
+      <div class="f"><label for="d-in">Jam kembali</label><input id="d-in" type="time" required></div>
+    </div>
+    <div class="f"><label for="d-fuel">BBM yang dibeli (Rp), opsional</label><input id="d-fuel" class="mono" type="number" inputmode="numeric" min="0" step="500" placeholder="0 jika tidak isi"></div>
+    <div class="f"><label for="d-note">Catatan kondisi motor, opsional</label><textarea id="d-note"></textarea></div>
+    <div class="msg" id="doneMsg" role="alert"></div>
+    <div class="actions"><button type="submit" class="primary" id="doneSave">Selesai pemakaian</button><button type="button" id="doneCancel">Batal</button></div>
+  </form>
+</dialog>
 <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
@@ -312,6 +338,7 @@ ul.log { list-style: none; margin: 8px 0 0; padding: 0; display: grid; }
     var title = mode === 'complete' ? 'Selesaikan pemakaian' : mode === 'edit' ? 'Ubah catatan' : 'Catat pemakaian baru';
     $('formTitle').textContent = title;
     $('cancelBtn').hidden = !editingId;
+    $('returnSet').hidden = mode === 'new';
     $('saveBtn').textContent = editingId ? 'Simpan perubahan' : 'Simpan';
   }
   function resetForm() {
@@ -459,8 +486,8 @@ ul.log { list-style: none; margin: 8px 0 0; padding: 0; display: grid; }
     if (canWrite) {
       var act = el('div', 'e-actions');
       if (t.status !== 'done') {
-        var c = el('button', 'small primary', 'Selesaikan'); c.type = 'button';
-        c.addEventListener('click', function () { loadIntoForm(t, 'complete'); });
+        var c = el('button', 'small primary', 'Selesai pemakaian'); c.type = 'button';
+        c.addEventListener('click', function () { openDone(t); });
         act.appendChild(c);
       }
       var ed = el('button', 'small', 'Ubah'); ed.type = 'button';
@@ -472,6 +499,45 @@ ul.log { list-style: none; margin: 8px 0 0; padding: 0; display: grid; }
       li.appendChild(act);
     }
     return li;
+  }
+
+  function elapsed(t) {
+    var st = new Date((t.date || '') + 'T' + (t.out || '00:00'));
+    var m = Math.floor((Date.now() - st.getTime()) / 60000);
+    if (isNaN(m) || m < 1) return '';
+    var h = Math.floor(m / 60), mm = m % 60;
+    return ' · ' + (h ? h + ' j ' : '') + mm + ' mnt';
+  }
+  var doneTrip = null, doneBusy = false;
+  function openDone(t) {
+    doneTrip = t;
+    $('doneInfo').textContent = t.plate + ' · ' + t.rider + ' ke ' + t.dest + ' · KM awal ' + nf.format(t.kmStart != null ? t.kmStart : 0);
+    $('d-kmend').value = '';
+    $('d-in').value = nowTime();
+    $('d-fuel').value = t.fuel != null ? t.fuel : '';
+    $('d-note').value = t.note || '';
+    $('doneMsg').textContent = '';
+    $('doneDlg').showModal();
+    setTimeout(function () { $('d-kmend').focus(); }, 50);
+  }
+  async function submitDone(e) {
+    e.preventDefault();
+    if (doneBusy || !doneTrip || !db) return;
+    var t = doneTrip, msg = $('doneMsg'), km = num($('d-kmend').value), jam = $('d-in').value;
+    if (km == null) { msg.textContent = 'KM akhir wajib diisi untuk menyelesaikan pemakaian.'; return; }
+    if (!jam) { msg.textContent = 'Isi jam kembali.'; return; }
+    if (km < t.kmStart) { msg.textContent = 'KM akhir lebih kecil dari KM awal (' + nf.format(t.kmStart) + '). Periksa speedometer.'; return; }
+    var rec = Object.assign({}, t, { kmEnd: km, in: jam, fuel: num($('d-fuel').value), note: $('d-note').value.trim(), status: 'done' });
+    doneBusy = true; $('doneSave').disabled = true;
+    try {
+      await db.doc('trips/' + t.id).set(rec);
+      $('doneDlg').close();
+      toast('Pemakaian selesai. ' + nf.format(km - t.kmStart) + ' km ditempuh.');
+    } catch (err) {
+      msg.textContent = 'Belum tersimpan. Periksa koneksi lalu coba lagi.';
+    } finally {
+      doneBusy = false; $('doneSave').disabled = false;
+    }
   }
 
   function render() {
@@ -492,24 +558,36 @@ ul.log { list-style: none; margin: 8px 0 0; padding: 0; display: grid; }
     if (fPlate && plates.indexOf(fPlate) < 0) fPlate = '';
     syncSelect($('f-filterplate'), pItems, fPlate, 'fplates');
 
-    /* currently out */
-    var out = trips.filter(function (t) { return t.status !== 'done'; }).sort(function (a, b) { return sortKey(a) < sortKey(b) ? 1 : -1; });
+    /* status kendaraan: yang belum selesai + yang selesai hari ini */
+    var today = todayStr();
+    var out = trips.filter(function (t) { return t.status !== 'done' || t.date === today; }).sort(function (a, b) {
+      if ((a.status === 'done') !== (b.status === 'done')) return a.status === 'done' ? 1 : -1;
+      return sortKey(a) < sortKey(b) ? 1 : -1;
+    });
     var strip = $('outList'); strip.textContent = '';
     if (!loaded) {
       strip.appendChild(el('p', 'out-empty', 'Memuat data…'));
     } else if (!out.length) {
-      strip.appendChild(el('p', 'out-empty', 'Semua motor ada di kantor.'));
+      strip.appendChild(el('p', 'out-empty', 'Semua motor ada di kantor. Belum ada pemakaian hari ini.'));
     } else {
       out.forEach(function (t) {
-        var row = el('div', 'out-item');
+        var isDone = t.status === 'done';
+        var row = el('div', 'out-item' + (isDone ? ' done' : ''));
         row.appendChild(el('span', 'plate', t.plate || '-'));
+        var pill = el('span', 'pill ' + (isDone ? 'done' : 'open'));
+        if (!isDone) pill.appendChild(el('span', 'dot'));
+        pill.appendChild(document.createTextNode(isDone ? 'Selesai' : 'Belum selesai'));
+        row.appendChild(pill);
         var who = el('span', 'who');
         who.appendChild(el('b', null, t.rider || '-'));
-        who.appendChild(document.createTextNode(' ke ' + (t.dest || '-') + ', sejak ' + (t.out || '--:--') + ' · ' + fmtDate(t.date)));
+        var d = distance(t);
+        who.appendChild(document.createTextNode(' ke ' + (t.dest || '-') + (isDone
+          ? ' · ' + (t.out || '--:--') + '–' + (t.in || '--:--') + (d != null ? ' · ' + nf.format(d) + ' km' : '')
+          : ', sejak ' + (t.out || '--:--') + ' · ' + fmtDate(t.date) + elapsed(t))));
         row.appendChild(who);
-        if (canWrite) {
-          var b = el('button', 'small primary', 'Selesaikan'); b.type = 'button';
-          b.addEventListener('click', function () { loadIntoForm(t, 'complete'); });
+        if (!isDone) {
+          var b = el('button', 'small primary', 'Selesai pemakaian'); b.type = 'button';
+          b.addEventListener('click', function () { openDone(t); });
           row.appendChild(b);
         }
         strip.appendChild(row);
@@ -567,6 +645,8 @@ ul.log { list-style: none; margin: 8px 0 0; padding: 0; display: grid; }
   $('cancelBtn').addEventListener('click', resetForm);
   $('f-plate').addEventListener('change', suggestKm);
   $('f-plate').addEventListener('blur', function () { $('f-plate').value = normPlate($('f-plate').value); });
+  $('doneForm').addEventListener('submit', submitDone);
+  $('doneCancel').addEventListener('click', function () { $('doneDlg').close(); });
   $('f-month').addEventListener('change', function (e) { fMonth = e.target.value; render(); });
   $('f-filterplate').addEventListener('change', function (e) { fPlate = e.target.value; render(); });
   $('csvBtn').addEventListener('click', exportXlsx);
@@ -587,6 +667,8 @@ ul.log { list-style: none; margin: 8px 0 0; padding: 0; display: grid; }
       render();
       if (!editingId) suggestKm();
     }, function () { fail('Data tidak bisa dibaca. Periksa koneksi atau hak akses.'); });
+    setInterval(function () { refresh(); }, 30000);   /* cadangan bila realtime terputus */
+    setInterval(render, 60000);                        /* perbarui lama pemakaian */
   })();
 })();
 </script>
