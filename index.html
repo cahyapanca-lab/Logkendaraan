@@ -1,0 +1,609 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Log Motor Kantor</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+/* Layout: logbook. Formulir di kolom kiri, status motor dan riwayat di kanan; satu kolom di layar sempit. */
+:root {
+  --bg: #F4F6F4;
+  --surface: #FFFFFF;
+  --ink: #17211D;
+  --muted: #5B6862;
+  --line: #D9DFDB;
+  --accent: #0E6B5C;
+  --accent-ink: #FFFFFF;
+  --accent-soft: #E0EFEB;
+  --warn: #9A4A06;
+  --warn-soft: #FBEAD2;
+  --ok: #2B6A39;
+  --ok-soft: #E0F0E3;
+  --danger: #B3261E;
+  --font-body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #111715; --surface: #192220; --ink: #E7EEEA; --muted: #98A7A0; --line: #2B3733;
+    --accent: #4FC3AC; --accent-ink: #07211C; --accent-soft: #1C3a34;
+    --warn: #F0B35E; --warn-soft: #3A2C14; --ok: #8FD19A; --ok-soft: #1F3524; --danger: #F2877F;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #111715; --surface: #192220; --ink: #E7EEEA; --muted: #98A7A0; --line: #2B3733;
+  --accent: #4FC3AC; --accent-ink: #07211C; --accent-soft: #1C3a34;
+  --warn: #F0B35E; --warn-soft: #3A2C14; --ok: #8FD19A; --ok-soft: #1F3524; --danger: #F2877F;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body {
+  background: var(--bg); color: var(--ink);
+  font-family: var(--font-body); font-size: 15px; line-height: 1.5;
+}
+.wrap {
+  max-width: 1120px; margin: 0 auto;
+  padding-block: 24px 48px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+header.top { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 16px; margin-bottom: 20px; }
+h1 { font-size: 1.6rem; line-height: 1.2; font-weight: 600; margin: 0; text-wrap: balance; letter-spacing: -0.01em; }
+header.top p { margin: 0; color: var(--muted); }
+h2 { font-size: 1rem; font-weight: 600; margin: 0; }
+.label { font-size: 0.72rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); font-weight: 500; }
+
+.grid { display: grid; gap: 20px; grid-template-columns: minmax(0, 1fr); align-items: start; }
+@media (min-width: 920px) { .grid { grid-template-columns: minmax(0, 380px) minmax(0, 1fr); } }
+.col { display: grid; gap: 20px; min-width: 0; }
+
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 18px; min-width: 0; }
+.panel-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
+
+form { display: grid; gap: 16px; }
+fieldset { border: 0; margin: 0; padding: 0; min-width: 0; display: grid; gap: 12px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+fieldset + fieldset { border-top: 1px solid var(--line); padding-top: 16px; }
+legend { padding: 0; margin-bottom: 10px; float: left; width: 100%; }
+legend + * { clear: both; }
+.f { display: grid; gap: 4px; min-width: 0; }
+.f.wide { grid-column: 1 / -1; }
+.f label { font-size: 0.8rem; color: var(--muted); font-weight: 500; }
+input, select, textarea {
+  width: 100%; min-width: 0; font: inherit; font-size: 16px; color: var(--ink);
+  background: var(--bg); border: 1px solid var(--line); border-radius: 6px; padding: 8px 10px; min-height: 40px;
+}
+textarea { resize: vertical; min-height: 64px; }
+input.mono, .mono { font-family: var(--font-mono); }
+input:focus-visible, select:focus-visible, textarea:focus-visible, button:focus-visible {
+  outline: 2px solid var(--accent); outline-offset: 1px;
+}
+.hint { font-size: 0.78rem; color: var(--muted); min-height: 1.1em; }
+.msg { font-size: 0.88rem; color: var(--danger); min-height: 1.3em; }
+.actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+button {
+  font: inherit; font-weight: 500; font-size: 0.92rem; min-height: 40px; padding: 8px 14px; border-radius: 6px;
+  border: 1px solid var(--line); background: var(--surface); color: var(--ink); cursor: pointer;
+}
+button:hover { border-color: var(--muted); }
+button.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+button.primary:hover { filter: brightness(1.06); }
+button.small { min-height: 32px; padding: 4px 10px; font-size: 0.82rem; }
+button.danger { color: var(--danger); }
+button[disabled] { opacity: 0.55; cursor: not-allowed; }
+
+.strip { display: grid; gap: 8px; }
+.out-item {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px;
+  padding: 10px 12px; background: var(--warn-soft); border-radius: 6px; min-width: 0;
+}
+.out-item .who { flex: 1 1 160px; min-width: 0; overflow-wrap: anywhere; }
+.out-item .who b { font-weight: 600; }
+.out-empty { color: var(--muted); font-size: 0.9rem; margin: 0; }
+.plate {
+  font-family: var(--font-mono); font-weight: 500; font-size: 0.85rem; letter-spacing: 0.04em;
+  border: 1px solid var(--ink); border-radius: 4px; padding: 1px 7px; white-space: nowrap; background: var(--surface); color: var(--ink);
+}
+
+.filters { display: flex; flex-wrap: wrap; gap: 10px; align-items: end; }
+.filters .f { flex: 1 1 150px; }
+.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 0; margin: 16px 0 6px; }
+.stat { padding: 2px 14px; border-left: 1px solid var(--line); min-width: 0; }
+.stat:first-child { border-left: 0; padding-left: 0; }
+.stat dt { font-size: 0.74rem; color: var(--muted); letter-spacing: 0.06em; text-transform: uppercase; }
+.stat dd { margin: 2px 0 0; font-family: var(--font-mono); font-size: 1.25rem; font-weight: 500; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+dl { margin: 0; }
+
+ul.log { list-style: none; margin: 8px 0 0; padding: 0; display: grid; }
+.entry { display: grid; gap: 6px; padding: 14px 0; border-top: 1px solid var(--line); min-width: 0; }
+.e-top { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; }
+.e-when { color: var(--muted); font-size: 0.85rem; font-variant-numeric: tabular-nums; }
+.pill { font-size: 0.72rem; font-weight: 600; padding: 1px 8px; border-radius: 99px; letter-spacing: 0.02em; }
+.pill.open { background: var(--warn-soft); color: var(--warn); }
+.pill.done { background: var(--ok-soft); color: var(--ok); }
+.e-main { overflow-wrap: anywhere; }
+.e-main .muted, .muted { color: var(--muted); }
+.e-meta { display: flex; flex-wrap: wrap; gap: 4px 16px; font-size: 0.86rem; color: var(--muted); }
+.e-meta .num { font-family: var(--font-mono); font-variant-numeric: tabular-nums; color: var(--ink); }
+.e-meta .dist { font-family: var(--font-mono); color: var(--accent); font-weight: 500; }
+.e-note { font-size: 0.86rem; color: var(--muted); overflow-wrap: anywhere; }
+.e-actions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 2px; }
+.empty { padding: 28px 8px; text-align: center; color: var(--muted); }
+.notice { margin: 0 0 14px; padding: 10px 12px; border-radius: 6px; background: var(--accent-soft); color: var(--ink); font-size: 0.9rem; }
+.toast {
+  position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+  background: var(--ink); color: var(--bg); padding: 10px 16px; border-radius: 6px; font-size: 0.9rem; z-index: 20;
+  max-width: calc(100% - 32px);
+}
+@media (prefers-reduced-motion: no-preference) { .toast { transition: opacity .2s; } }
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <h1>Log Motor Kantor</h1>
+    <p>Catat siapa memakai motor, ke mana, dan berapa kilometer.</p>
+    <button type="button" class="small" id="logoutBtn" hidden>Keluar</button>
+  </header>
+
+  <div class="grid">
+    <div class="col">
+      <section class="panel" id="loginPanel" hidden>
+        <div class="panel-head"><h2>Masuk</h2></div>
+        <form id="loginForm" novalidate>
+          <div class="f"><label for="l-email">Email</label><input id="l-email" type="email" autocomplete="username" required></div>
+          <div class="f"><label for="l-pass">Kata sandi</label><input id="l-pass" type="password" autocomplete="current-password" required></div>
+          <div class="msg" id="loginMsg" role="alert"></div>
+          <div class="actions"><button type="submit" class="primary">Masuk</button></div>
+        </form>
+      </section>
+      <section class="panel" id="formPanel" aria-labelledby="formTitle">
+        <div class="panel-head"><h2 id="formTitle">Catat pemakaian baru</h2></div>
+        <p class="notice" id="dbNote" hidden></p>
+        <form id="tripForm" novalidate>
+          <fieldset>
+            <legend class="label">Saat berangkat</legend>
+            <div class="f"><label for="f-date">Tanggal</label><input id="f-date" type="date" required></div>
+            <div class="f"><label for="f-out">Jam keluar</label><input id="f-out" type="time" required></div>
+            <div class="f wide"><label for="f-rider">Nama pemakai</label><input id="f-rider" type="text" autocomplete="name" placeholder="Nama lengkap" required></div>
+            <div class="f wide">
+              <label for="f-plate">Motor (plat nomor)</label>
+              <input id="f-plate" class="mono" type="text" list="plateList" autocapitalize="characters" placeholder="B 1234 XYZ" required>
+              <datalist id="plateList"></datalist>
+              <span class="hint" id="kmHint"></span>
+            </div>
+            <div class="f wide"><label for="f-dest">Tujuan</label><input id="f-dest" type="text" placeholder="Contoh: Kantor pos Depok Lama" required></div>
+            <div class="f wide"><label for="f-purpose">Keperluan</label><input id="f-purpose" type="text" placeholder="Contoh: Kirim berkas, survei vendor" required></div>
+            <div class="f wide"><label for="f-kmstart">KM awal (speedometer)</label><input id="f-kmstart" class="mono" type="number" inputmode="numeric" min="0" step="1" required></div>
+          </fieldset>
+          <fieldset>
+            <legend class="label">Saat kembali (isi setelah pulang)</legend>
+            <div class="f"><label for="f-in">Jam kembali</label><input id="f-in" type="time"></div>
+            <div class="f"><label for="f-kmend">KM akhir</label><input id="f-kmend" class="mono" type="number" inputmode="numeric" min="0" step="1"></div>
+            <div class="f wide"><label for="f-fuel">BBM yang dibeli (Rp)</label><input id="f-fuel" class="mono" type="number" inputmode="numeric" min="0" step="500" placeholder="0 jika tidak isi"></div>
+            <div class="f wide"><label for="f-note">Catatan kondisi motor</label><textarea id="f-note" placeholder="Contoh: rem belakang agak bunyi, bensin tinggal setengah"></textarea></div>
+          </fieldset>
+          <div class="msg" id="formMsg" role="alert"></div>
+          <div class="actions">
+            <button type="submit" class="primary" id="saveBtn">Simpan</button>
+            <button type="button" id="cancelBtn" hidden>Batal</button>
+          </div>
+        </form>
+      </section>
+    </div>
+
+    <div class="col">
+      <section class="panel" aria-labelledby="outTitle">
+        <div class="panel-head"><h2 id="outTitle">Motor yang sedang keluar</h2></div>
+        <div class="strip" id="outList"><p class="out-empty">Memuat data…</p></div>
+      </section>
+
+      <section class="panel" aria-labelledby="histTitle">
+        <div class="panel-head">
+          <h2 id="histTitle">Riwayat pemakaian</h2>
+          <button type="button" class="small" id="csvBtn" hidden>Unduh Excel</button>
+        </div>
+        <div class="filters">
+          <div class="f"><label for="f-month">Bulan</label><select id="f-month"></select></div>
+          <div class="f"><label for="f-filterplate">Motor</label><select id="f-filterplate"></select></div>
+        </div>
+        <dl class="stats" id="stats"></dl>
+        <ul class="log" id="log"></ul>
+      </section>
+    </div>
+  </div>
+</div>
+<div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="config.js"></script>
+<script>
+(function () {
+  var $ = function (id) { return document.getElementById(id); };
+  var pad = function (n) { return String(n).padStart(2, '0'); };
+  var nf = new Intl.NumberFormat('id-ID');
+  function el(tag, cls, text) {
+    var e = document.createElement(tag);
+    if (cls) e.className = cls;
+    if (text != null) e.textContent = text;
+    return e;
+  }
+  function todayStr() { var d = new Date(); return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); }
+  function nowTime() { var d = new Date(); return pad(d.getHours()) + ':' + pad(d.getMinutes()); }
+  function fmtDate(s) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(s || '')) return s || '-';
+    var p = s.split('-').map(Number);
+    return new Intl.DateTimeFormat('id-ID', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' }).format(new Date(p[0], p[1] - 1, p[2]));
+  }
+  function fmtMonth(ym) {
+    var p = ym.split('-').map(Number);
+    return new Intl.DateTimeFormat('id-ID', { month: 'long', year: 'numeric' }).format(new Date(p[0], p[1] - 1, 1));
+  }
+  function normPlate(s) { return String(s || '').toUpperCase().replace(/\s+/g, ' ').trim(); }
+  function num(v) { return (v === '' || v == null || isNaN(Number(v))) ? null : Number(v); }
+  function lsGet(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+  function lsSet(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
+
+  /* ---------- Supabase adapter (menggantikan window.claude.use('db')) ---------- */
+  var sb = null, snapCb = null, snapErr = null;
+  function fromRow(r) {
+    return { id: r.id, date: r.trip_date, out: (r.time_out || '').slice(0, 5), rider: r.rider, plate: r.plate,
+      dest: r.dest, purpose: r.purpose, kmStart: r.km_start, in: (r.time_in || '').slice(0, 5), kmEnd: r.km_end,
+      fuel: r.fuel, note: r.note || '', status: r.status, createdBy: r.created_by };
+  }
+  function toRow(t) {
+    return { trip_date: t.date, time_out: t.out, rider: t.rider, plate: t.plate, dest: t.dest, purpose: t.purpose,
+      km_start: t.kmStart, time_in: t.in || null, km_end: t.kmEnd, fuel: t.fuel, note: t.note || null,
+      status: t.status, created_by: t.createdBy || undefined, updated_at: new Date().toISOString() };
+  }
+  async function refresh() {
+    var r = await sb.from('trips').select('*').order('trip_date', { ascending: false }).limit(5000);
+    if (r.error) { if (snapErr) snapErr(r.error); return; }
+    snapCb({ docs: r.data.map(function (x) { return { id: x.id, data: function () { return fromRow(x); } }; }),
+      metadata: { fromCache: false }, size: r.data.length });
+  }
+  function makeDb() {
+    var chk = function (r) { if (r.error) throw r.error; return refresh(); };
+    return {
+      collection: function () {
+        return {
+          add: async function (rec) { return chk(await sb.from('trips').insert(toRow(rec))); },
+          limit: function () {
+            return { onSnapshot: function (ok, bad) {
+              snapCb = ok; snapErr = bad; refresh();
+              sb.channel('trips-live').on('postgres_changes', { event: '*', schema: 'public', table: 'trips' }, refresh).subscribe();
+            } };
+          }
+        };
+      },
+      doc: function (path) {
+        var id = path.split('/')[1];
+        return {
+          set: async function (rec) { return chk(await sb.from('trips').update(toRow(rec)).eq('id', id)); },
+          delete: async function () { return chk(await sb.from('trips').delete().eq('id', id)); }
+        };
+      }
+    };
+  }
+
+  var db = null, user = null, uid = null, canWrite = true;
+  var trips = [], loaded = false, editingId = null, busy = false;
+  var fMonth = todayStr().slice(0, 7), fPlate = '';
+  var toastTimer = null, loadTimer = null, optSig = {};
+
+  function toast(msg) {
+    var t = $('toast'); t.textContent = msg; t.hidden = false;
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () { t.hidden = true; }, 2600);
+  }
+
+  /* ---------- data helpers ---------- */
+  function distance(t) { return (t.kmEnd != null && t.kmStart != null) ? Math.max(0, t.kmEnd - t.kmStart) : null; }
+  function sortKey(t) { return (t.date || '') + ' ' + (t.out || ''); }
+  function lastKm(plate) {
+    var best = null;
+    trips.forEach(function (t) {
+      if (t.plate === plate && t.kmEnd != null && (!best || sortKey(t) > sortKey(best))) best = t;
+    });
+    return best ? best.kmEnd : null;
+  }
+
+  /* ---------- form ---------- */
+  function setMode(mode) {
+    var title = mode === 'complete' ? 'Selesaikan pemakaian' : mode === 'edit' ? 'Ubah catatan' : 'Catat pemakaian baru';
+    $('formTitle').textContent = title;
+    $('cancelBtn').hidden = !editingId;
+    $('saveBtn').textContent = editingId ? 'Simpan perubahan' : 'Simpan';
+  }
+  function resetForm() {
+    editingId = null;
+    $('tripForm').reset();
+    $('f-date').value = todayStr();
+    $('f-out').value = nowTime();
+    $('f-rider').value = lsGet('logmotor.rider') || '';
+    $('f-plate').value = lsGet('logmotor.plate') || '';
+    $('formMsg').textContent = '';
+    setMode('new');
+    suggestKm();
+  }
+  function suggestKm() {
+    var plate = normPlate($('f-plate').value), hint = $('kmHint');
+    if (!plate) { hint.textContent = ''; return; }
+    var k = lastKm(plate);
+    if (k == null) { hint.textContent = 'Belum ada KM tercatat untuk motor ini.'; return; }
+    hint.textContent = 'KM akhir terakhir motor ini: ' + nf.format(k);
+    if (!editingId && $('f-kmstart').value === '') $('f-kmstart').value = k;
+  }
+  function loadIntoForm(t, mode) {
+    editingId = t.id;
+    $('f-date').value = t.date || todayStr();
+    $('f-out').value = t.out || '';
+    $('f-rider').value = t.rider || '';
+    $('f-plate').value = t.plate || '';
+    $('f-dest').value = t.dest || '';
+    $('f-purpose').value = t.purpose || '';
+    $('f-kmstart').value = t.kmStart != null ? t.kmStart : '';
+    $('f-in').value = t.in || (mode === 'complete' ? nowTime() : '');
+    $('f-kmend').value = t.kmEnd != null ? t.kmEnd : '';
+    $('f-fuel').value = t.fuel != null ? t.fuel : '';
+    $('f-note').value = t.note || '';
+    $('formMsg').textContent = '';
+    $('kmHint').textContent = '';
+    setMode(mode);
+    $('formPanel').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    setTimeout(function () { $(mode === 'complete' ? 'f-kmend' : 'f-rider').focus({ preventScroll: true }); }, 250);
+  }
+
+  async function submit(e) {
+    e.preventDefault();
+    if (busy) return;
+    var msg = $('formMsg');
+    msg.textContent = '';
+    if (!db) { msg.textContent = 'Penyimpanan bersama belum tersedia di tampilan ini.'; return; }
+    var rec = {
+      date: $('f-date').value,
+      out: $('f-out').value,
+      rider: $('f-rider').value.trim(),
+      plate: normPlate($('f-plate').value),
+      dest: $('f-dest').value.trim(),
+      purpose: $('f-purpose').value.trim(),
+      kmStart: num($('f-kmstart').value),
+      in: $('f-in').value,
+      kmEnd: num($('f-kmend').value),
+      fuel: num($('f-fuel').value),
+      note: $('f-note').value.trim()
+    };
+    if (!rec.date || !rec.out || !rec.rider || !rec.plate || !rec.dest || !rec.purpose || rec.kmStart == null) {
+      msg.textContent = 'Lengkapi tanggal, jam keluar, nama, plat nomor, tujuan, keperluan, dan KM awal.'; return;
+    }
+    if (rec.kmStart < 0 || (rec.kmEnd != null && rec.kmEnd < 0)) { msg.textContent = 'KM tidak boleh negatif.'; return; }
+    if ((rec.kmEnd != null) !== !!rec.in) { msg.textContent = 'Jam kembali dan KM akhir diisi bersamaan, atau dikosongkan keduanya.'; return; }
+    if (rec.kmEnd != null && rec.kmEnd < rec.kmStart) { msg.textContent = 'KM akhir lebih kecil dari KM awal. Periksa lagi angka speedometer.'; return; }
+    rec.status = rec.kmEnd != null ? 'done' : 'open';
+    var now = Date.now();
+    busy = true; $('saveBtn').disabled = true;
+    try {
+      if (editingId) {
+        var old = trips.find(function (t) { return t.id === editingId; }) || {};
+        rec.createdBy = old.createdBy || uid || null;
+        rec.createdAt = old.createdAt || now;
+        rec.updatedAt = now;
+        await db.doc('trips/' + editingId).set(rec);
+        toast('Perubahan tersimpan');
+      } else {
+        rec.createdBy = uid || null;
+        rec.createdAt = now;
+        rec.updatedAt = now;
+        await db.collection('trips').add(rec);
+        toast(rec.status === 'open' ? 'Tersimpan. Motor tercatat sedang keluar.' : 'Pemakaian tersimpan');
+      }
+      lsSet('logmotor.rider', rec.rider);
+      lsSet('logmotor.plate', rec.plate);
+      resetForm();
+    } catch (err) {
+      msg.textContent = err && err.code === 'quota_exceeded'
+        ? 'Penyimpanan penuh. Hapus catatan lama atau unduh CSV lalu hapus sebagian.'
+        : 'Belum tersimpan. Periksa koneksi lalu coba lagi.';
+    } finally {
+      busy = false; $('saveBtn').disabled = false;
+    }
+  }
+
+  var delArmed = null, delTimer = null;
+  async function removeTrip(t, btn) {
+    if (delArmed !== t.id) {
+      delArmed = t.id; btn.textContent = 'Yakin hapus?';
+      clearTimeout(delTimer);
+      delTimer = setTimeout(function () { delArmed = null; btn.textContent = 'Hapus'; }, 4000);
+      return;
+    }
+    clearTimeout(delTimer); delArmed = null;
+    try { await db.doc('trips/' + t.id).delete(); toast('Catatan dihapus'); if (editingId === t.id) resetForm(); }
+    catch (err) { toast('Gagal menghapus. Coba lagi.'); }
+  }
+
+  /* ---------- rendering ---------- */
+  function syncSelect(sel, items, current, sigKey) {
+    var sig = items.map(function (i) { return i[0]; }).join('|');
+    if (optSig[sigKey] !== sig) {
+      optSig[sigKey] = sig;
+      sel.textContent = '';
+      items.forEach(function (i) { var o = el('option', null, i[1]); o.value = i[0]; sel.appendChild(o); });
+    }
+    sel.value = current;
+  }
+
+  function entryNode(t) {
+    var li = el('li', 'entry');
+    var top = el('div', 'e-top');
+    top.appendChild(el('span', 'plate', t.plate || '-'));
+    top.appendChild(el('span', 'pill ' + (t.status === 'done' ? 'done' : 'open'), t.status === 'done' ? 'Selesai' : 'Sedang dipakai'));
+    var when = fmtDate(t.date) + ' · ' + (t.out || '--:--') + (t.in ? '–' + t.in : '');
+    top.appendChild(el('span', 'e-when', when));
+    li.appendChild(top);
+
+    var main = el('div', 'e-main');
+    main.appendChild(el('b', null, t.rider || '-'));
+    main.appendChild(document.createTextNode(' ke ' + (t.dest || '-')));
+    main.appendChild(el('span', 'muted', ' · ' + (t.purpose || '-')));
+    li.appendChild(main);
+
+    var meta = el('div', 'e-meta');
+    var d = distance(t);
+    var km = el('span', 'num', nf.format(t.kmStart != null ? t.kmStart : 0) + (t.kmEnd != null ? ' → ' + nf.format(t.kmEnd) : ' → …') + ' km');
+    meta.appendChild(km);
+    if (d != null) meta.appendChild(el('span', 'dist', nf.format(d) + ' km ditempuh'));
+    if (t.fuel) meta.appendChild(el('span', null, 'BBM Rp ' + nf.format(t.fuel)));
+    li.appendChild(meta);
+    if (t.note) li.appendChild(el('div', 'e-note', 'Catatan: ' + t.note));
+
+    if (canWrite) {
+      var act = el('div', 'e-actions');
+      if (t.status !== 'done') {
+        var c = el('button', 'small primary', 'Selesaikan'); c.type = 'button';
+        c.addEventListener('click', function () { loadIntoForm(t, 'complete'); });
+        act.appendChild(c);
+      }
+      var ed = el('button', 'small', 'Ubah'); ed.type = 'button';
+      ed.addEventListener('click', function () { loadIntoForm(t, 'edit'); });
+      act.appendChild(ed);
+      var del = el('button', 'small danger', 'Hapus'); del.type = 'button';
+      del.addEventListener('click', function () { removeTrip(t, del); });
+      act.appendChild(del);
+      li.appendChild(act);
+    }
+    return li;
+  }
+
+  function render() {
+    /* options */
+    var plates = Array.from(new Set(trips.map(function (t) { return t.plate; }).filter(Boolean))).sort();
+    var dl = $('plateList');
+    if (optSig.plates !== plates.join('|')) {
+      optSig.plates = plates.join('|'); dl.textContent = '';
+      plates.forEach(function (p) { var o = document.createElement('option'); o.value = p; dl.appendChild(o); });
+    }
+    var months = new Set([todayStr().slice(0, 7)]);
+    trips.forEach(function (t) { if (/^\d{4}-\d{2}/.test(t.date || '')) months.add(t.date.slice(0, 7)); });
+    var mItems = Array.from(months).sort().reverse().map(function (m) { return [m, fmtMonth(m)]; });
+    mItems.push(['all', 'Semua bulan']);
+    if (fMonth !== 'all' && !months.has(fMonth)) fMonth = todayStr().slice(0, 7);
+    syncSelect($('f-month'), mItems, fMonth, 'months');
+    var pItems = [['', 'Semua motor']].concat(plates.map(function (p) { return [p, p]; }));
+    if (fPlate && plates.indexOf(fPlate) < 0) fPlate = '';
+    syncSelect($('f-filterplate'), pItems, fPlate, 'fplates');
+
+    /* currently out */
+    var out = trips.filter(function (t) { return t.status !== 'done'; }).sort(function (a, b) { return sortKey(a) < sortKey(b) ? 1 : -1; });
+    var strip = $('outList'); strip.textContent = '';
+    if (!loaded) {
+      strip.appendChild(el('p', 'out-empty', 'Memuat data…'));
+    } else if (!out.length) {
+      strip.appendChild(el('p', 'out-empty', 'Semua motor ada di kantor.'));
+    } else {
+      out.forEach(function (t) {
+        var row = el('div', 'out-item');
+        row.appendChild(el('span', 'plate', t.plate || '-'));
+        var who = el('span', 'who');
+        who.appendChild(el('b', null, t.rider || '-'));
+        who.appendChild(document.createTextNode(' ke ' + (t.dest || '-') + ', sejak ' + (t.out || '--:--') + ' · ' + fmtDate(t.date)));
+        row.appendChild(who);
+        if (canWrite) {
+          var b = el('button', 'small primary', 'Selesaikan'); b.type = 'button';
+          b.addEventListener('click', function () { loadIntoForm(t, 'complete'); });
+          row.appendChild(b);
+        }
+        strip.appendChild(row);
+      });
+    }
+
+    /* history */
+    var list = trips.filter(function (t) {
+      if (fMonth !== 'all' && (t.date || '').slice(0, 7) !== fMonth) return false;
+      if (fPlate && t.plate !== fPlate) return false;
+      return true;
+    }).sort(function (a, b) { return sortKey(a) < sortKey(b) ? 1 : -1; });
+
+    var totalKm = 0, totalFuel = 0;
+    list.forEach(function (t) { var d = distance(t); if (d != null) totalKm += d; if (t.fuel) totalFuel += t.fuel; });
+    var stats = $('stats'); stats.textContent = '';
+    [['Perjalanan', nf.format(list.length)], ['Jarak (km)', nf.format(totalKm)], ['BBM (Rp)', nf.format(totalFuel)]].forEach(function (s) {
+      var box = el('div', 'stat'); box.appendChild(el('dt', null, s[0])); box.appendChild(el('dd', null, s[1])); stats.appendChild(box);
+    });
+
+    var ul = $('log'); ul.textContent = '';
+    if (!loaded) {
+      ul.appendChild(el('li', 'empty', 'Memuat data…'));
+    } else if (!list.length) {
+      var li = el('li', 'empty', fMonth === 'all' && !fPlate
+        ? 'Belum ada catatan. Isi formulir di sebelah kiri untuk pemakaian pertama.'
+        : 'Tidak ada catatan untuk pilihan ini.');
+      ul.appendChild(li);
+    } else {
+      list.forEach(function (t) { ul.appendChild(entryNode(t)); });
+    }
+    $('csvBtn').hidden = !(loaded && list.length);
+    window.__logList = list;
+  }
+
+  /* ---------- Excel ---------- */
+  function exportXlsx() {
+    var list = window.__logList || [];
+    if (!list.length) return;
+    var head = ['Tanggal', 'Pemakai', 'Motor', 'Keperluan', 'Tujuan', 'Jam keluar', 'Jam kembali', 'KM awal', 'KM akhir', 'Jarak (km)', 'BBM (Rp)', 'Catatan', 'Status'];
+    var rows = list.slice().sort(function (a, b) { return sortKey(a) > sortKey(b) ? 1 : -1; }).map(function (t) {
+      return [t.date, t.rider, t.plate, t.purpose, t.dest, t.out, t.in || '', t.kmStart, t.kmEnd, distance(t), t.fuel, t.note, t.status === 'done' ? 'Selesai' : 'Sedang dipakai'];
+    });
+    var ws = XLSX.utils.aoa_to_sheet([head].concat(rows));
+    ws['!cols'] = [12, 18, 12, 24, 24, 11, 12, 10, 10, 11, 11, 30, 15].map(function (w) { return { wch: w }; });
+    var wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Log Motor');
+    var name = 'log-motor-' + (fMonth === 'all' ? 'semua' : fMonth) + (fPlate ? '-' + fPlate.replace(/\s+/g, '') : '') + '.xlsx';
+    XLSX.writeFile(wb, name);
+    toast('Excel diunduh');
+  }
+
+  /* ---------- init ---------- */
+  $('tripForm').addEventListener('submit', submit);
+  $('cancelBtn').addEventListener('click', resetForm);
+  $('f-plate').addEventListener('change', suggestKm);
+  $('f-plate').addEventListener('blur', function () { $('f-plate').value = normPlate($('f-plate').value); });
+  $('f-month').addEventListener('change', function (e) { fMonth = e.target.value; render(); });
+  $('f-filterplate').addEventListener('change', function (e) { fPlate = e.target.value; render(); });
+  $('csvBtn').addEventListener('click', exportXlsx);
+
+  resetForm();
+  render();
+
+  (async function start() {
+    var cfg = window.APP_CONFIG || {}, note = $('dbNote');
+    function fail(m) { loaded = true; note.hidden = false; note.textContent = m; $('saveBtn').disabled = true; render(); }
+    if (!window.supabase || !cfg.SUPABASE_URL || cfg.SUPABASE_URL.indexOf('GANTI') >= 0) { fail('Isi SUPABASE_URL dan SUPABASE_ANON_KEY di config.js.'); return; }
+    sb = window.supabase.createClient(cfg.SUPABASE_URL, cfg.SUPABASE_ANON_KEY);
+    var sess = (await sb.auth.getSession()).data.session;
+    if (!sess) {
+      $('tripForm').hidden = true; $('loginPanel').hidden = false;
+      $('loginForm').addEventListener('submit', async function (e) {
+        e.preventDefault();
+        var r = await sb.auth.signInWithPassword({ email: $('l-email').value.trim(), password: $('l-pass').value });
+        if (r.error) { $('loginMsg').textContent = 'Email atau kata sandi salah.'; return; }
+        location.reload();
+      });
+      fail('Silakan masuk untuk melihat dan mencatat data.');
+      $('formPanel').hidden = true; $('loginPanel').hidden = false;
+      return;
+    }
+    uid = sess.user.id;
+    $('logoutBtn').hidden = false;
+    $('logoutBtn').addEventListener('click', async function () { await sb.auth.signOut(); location.reload(); });
+    db = makeDb();
+    db.collection('trips').limit(1000).onSnapshot(function (snap) {
+      trips = snap.docs.map(function (d) { var x = d.data() || {}; x.id = d.id; return x; });
+      loaded = true; note.hidden = true;
+      render();
+      if (!editingId) suggestKm();
+    }, function () { fail('Data tidak bisa dibaca. Periksa koneksi atau hak akses.'); });
+  })();
+})();
+</script>
+
+</body></html>
